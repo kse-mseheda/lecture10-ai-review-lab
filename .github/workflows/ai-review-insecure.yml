@@ -31,7 +31,7 @@ jobs:
     # Flaw 3: API key is exposed at job scope. Every step -- including
     # third-party actions pulled in later -- can read it via the environment.
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
 
     # Flaw 4: no timeout. A single runaway PR can burn the API budget until
     # the month's quota is gone.
@@ -47,7 +47,7 @@ jobs:
 
       # Flaw 10: this step runs arbitrary code from the PR head under a
       # pull_request_target trigger. The base-branch secrets (including
-      # ANTHROPIC_API_KEY and the write-privileged GITHUB_TOKEN) are in
+      # NVIDIA_API_KEY and the write-privileged GITHUB_TOKEN) are in
       # scope for whatever pytest decides to do. A fork PR that modifies
       # sample-app/tests/*.py can exfiltrate both secrets.
       - name: Run smoke tests for AI context
@@ -80,7 +80,7 @@ jobs:
           git fetch origin "$BASE_SHA"
           git diff "$BASE_SHA"..HEAD >> /tmp/context.txt
 
-      - name: Call Anthropic API with curl
+      - name: Call Gemma API with curl
         id: review
         run: |
           # Flaw 7: raw curl. No retry, no structured output request, no
@@ -89,13 +89,15 @@ jobs:
           # and we will treat it as trustworthy.
           PROMPT=$(cat /tmp/context.txt)
 
-          RESPONSE=$(curl -sS https://api.anthropic.com/v1/messages \
-            -H "x-api-key: $ANTHROPIC_API_KEY" \
-            -H "anthropic-version: 2023-06-01" \
-            -H "content-type: application/json" \
+          RESPONSE=$(curl -sS https://integrate.api.nvidia.com/v1/chat/completions \
+            -H "Authorization: Bearer $NVIDIA_API_KEY" \
+            -H "Content-Type: application/json" \
             -d "$(jq -n --arg prompt "$PROMPT" '{
-              model: "claude-haiku-4-5",
-              max_tokens: 4096,
+              model: "google/gemma-2-2b-it",
+              max_tokens: 1024,
+              temperature: 0.2,
+              top_p: 0.7,
+              stream: false,
               messages: [
                 { role: "user", content: ("Review this PR for security issues and post findings as markdown:\n\n" + $prompt) }
               ]
@@ -105,7 +107,7 @@ jobs:
           # -- free-form, markdown, possibly injected commands -- is extracted
           # and passed to gh pr comment. An attacker who controls the PR body
           # can control the comment body.
-          echo "$RESPONSE" | jq -r '.content[0].text' > /tmp/comment.md
+          echo "$RESPONSE" | jq -r '.choices[0].message.content' > /tmp/comment.md
 
       - name: Post review comment
         env:
