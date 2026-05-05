@@ -3,15 +3,26 @@
 # It is the lab target for Lecture 10. Do not copy it into a real project.
 # Each numbered comment below marks a separate flaw you must identify in
 # submission/analysis.md. See docs/insecure-workflow-analysis.md for hints.
+#
+# SUBMISSION NOTE
+# ---------------
+# TASKS.md Task 3 instructs students to delete this file. For this submission
+# the file is kept in-tree as an educational reference but its automatic
+# trigger has been removed: the original `on: pull_request_target:` block has
+# been replaced with `on: workflow_dispatch:` only, so the workflow no longer
+# runs on PRs and cannot be exploited. The hardened replacement is
+# .github/workflows/ai-review-hardened.yml. The original `pull_request_target`
+# trigger remains documented as Flaw 1 below for grading purposes.
 
-name: AI Review (INSECURE)
+name: AI Review (INSECURE -- disabled, kept for reference)
 
-# Flaw 1: pull_request_target runs with write access and repository secrets
-# against code from the PR head. A fork PR can ship arbitrary code that the
-# workflow will then feed to a privileged job.
+# Flaw 1 (kept for reference, no longer active): the original workflow used
+# pull_request_target, which runs with write access and repository secrets
+# against code from the PR head -- a fork PR could ship arbitrary code that
+# the workflow would then feed to a privileged job. The trigger has been
+# downgraded to workflow_dispatch only so the file does not auto-run.
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 # Flaw 2: permissions are set to write-all. The workflow only needs to
 # comment on PRs, so contents:read and pull-requests:write would be enough.
