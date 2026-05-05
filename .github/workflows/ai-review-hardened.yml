@@ -158,8 +158,7 @@ jobs:
           # --retry:          transient 5xx tolerance only; 4xx not retried.
           curl -sS \
             --fail-with-body \
-            --max-time 60 \
-            --retry 2 --retry-delay 3 --retry-connrefused \
+            --max-time 160 \
             -H "Authorization: Bearer $NVIDIA_API_KEY" \
             -H "Accept: application/json" \
             -H "Content-Type: application/json" \
